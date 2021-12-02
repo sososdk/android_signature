@@ -1,13 +1,17 @@
-
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
+/// Get android package signature.
+///
+/// *Only working on `Android Devices`.*
 class AndroidSignature {
-  static const MethodChannel _channel = MethodChannel('android_signature');
+  static const MethodChannel _channel =
+      MethodChannel('sososdk.github.com/android_signature');
 
-  static Future<String?> get platformVersion async {
-    final String? version = await _channel.invokeMethod('getPlatformVersion');
-    return version;
-  }
+  /// Get Signatures.
+  static Future<List<Uint8List>> get signatures =>
+      _channel.invokeMethod<List>('getSignature').then(
+          (value) => value!.map((e) => e as Uint8List).toList(growable: false));
 }

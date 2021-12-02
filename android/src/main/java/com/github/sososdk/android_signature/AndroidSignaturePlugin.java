@@ -1,6 +1,16 @@
 package com.github.sososdk.android_signature;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.os.Build;
+
 import androidx.annotation.NonNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
@@ -15,17 +25,34 @@ public class AndroidSignaturePlugin implements FlutterPlugin, MethodCallHandler 
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
   private MethodChannel channel;
+  private Context context;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "android_signature");
+    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "sososdk.github.com/android_signature");
     channel.setMethodCallHandler(this);
+    context = flutterPluginBinding.getApplicationContext();
   }
 
+  @SuppressLint("PackageManagerGetSignatures")
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + android.os.Build.VERSION.RELEASE);
+    if (call.method.equals("getSignature")) {
+      try {
+        final PackageInfo packageInfo;
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+          packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES);
+        } else {
+          packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
+        }
+        final List<byte[]> signaturesBytes = new ArrayList<>(packageInfo.signatures.length);
+        for (Signature signature : packageInfo.signatures) {
+          signaturesBytes.add(signature.toByteArray());
+        }
+        result.success(signaturesBytes);
+      } catch (PackageManager.NameNotFoundException ignored) {
+        throw new RuntimeException("Impossible!");
+      }
     } else {
       result.notImplemented();
     }

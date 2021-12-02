@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:typed_data';
 
-import 'package:flutter/services.dart';
 import 'package:android_signature/android_signature.dart';
+import 'package:crypto/crypto.dart' as crypto;
+import 'package:flutter/material.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  List<Uint8List>? _signatures;
 
   @override
   void initState() {
@@ -26,15 +27,7 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await AndroidSignature.platformVersion ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
+    List<Uint8List> signatures = await AndroidSignature.signatures;
 
     // If the widget was removed from the tree while the asynchronous platform
     // message was in flight, we want to discard the reply rather than calling
@@ -42,7 +35,7 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _platformVersion = platformVersion;
+      _signatures = signatures;
     });
   }
 
@@ -54,9 +47,24 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Plugin example app'),
         ),
         body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('md5: ${_signatures?.map((e) => e.md5).join('\n')}\n'),
+              Text('sha1: ${_signatures?.map((e) => e.sha1).join('\n')}\n'),
+              Text('sha256: ${_signatures?.map((e) => e.sha256).join('\n')}\n'),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+extension SignatureExtension on Uint8List {
+  String get md5 => crypto.md5.convert(this).toString();
+
+  String get sha1 => crypto.sha1.convert(this).toString();
+
+  String get sha256 => crypto.sha256.convert(this).toString();
 }

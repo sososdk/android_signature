@@ -39,14 +39,14 @@ public class AndroidSignaturePlugin implements FlutterPlugin, MethodCallHandler 
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     if (call.method.equals("getSignature")) {
       try {
-        final PackageInfo packageInfo;
+        final Signature[] signatures;
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-          packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES);
+          signatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES).signatures;
         } else {
-          packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES);
+          signatures = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES).signingInfo.getApkContentsSigners();
         }
-        final List<byte[]> signaturesBytes = new ArrayList<>(packageInfo.signatures.length);
-        for (Signature signature : packageInfo.signatures) {
+        final List<byte[]> signaturesBytes = new ArrayList<>(signatures.length);
+        for (Signature signature : signatures) {
           signaturesBytes.add(signature.toByteArray());
         }
         result.success(signaturesBytes);
